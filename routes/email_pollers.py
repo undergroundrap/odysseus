@@ -993,6 +993,8 @@ async def _auto_summarize_poller():
     while True:
         try:
             await _asyncio.sleep(1800)
+            # Intentionally omit owner: this legacy poller preserves the
+            # system-wide scan; per-user scheduled tasks pass owner explicitly.
             await _auto_summarize_pass()
         except Exception as e:
             logger.error(f"Auto-summarize poller crash: {e}")

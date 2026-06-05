@@ -5,6 +5,7 @@ import re
 import uuid
 import json
 import socket
+import hashlib
 import time as _time
 import logging
 import httpx
@@ -850,6 +851,14 @@ def _visible_models(cached_models, hidden_models, pinned_models=None):
     return [m for m in merged if m not in hidden]
 
 
+def _api_key_fingerprint(api_key: Optional[str]) -> str:
+    """Stable, non-secret label for distinguishing same-URL credentials."""
+    key = (api_key or "").strip()
+    if not key:
+        return ""
+    return hashlib.sha256(key.encode("utf-8")).hexdigest()[:8]
+
+
 def setup_model_routes(model_discovery):
     router = APIRouter(prefix="/api")
 
@@ -1397,6 +1406,7 @@ def setup_model_routes(model_discovery):
                     "name": r.name,
                     "base_url": r.base_url,
                     "has_key": bool(r.api_key),
+                    "api_key_fingerprint": _api_key_fingerprint(r.api_key),
                     "is_enabled": r.is_enabled,
                     "models": visible,
                     "pinned_models": pinned,
@@ -1539,6 +1549,8 @@ def setup_model_routes(model_discovery):
                     "id": existing.id,
                     "name": existing.name,
                     "base_url": existing.base_url,
+                    "has_key": bool(existing.api_key),
+                    "api_key_fingerprint": _api_key_fingerprint(existing.api_key),
                     "models": _visible_models(
                         existing_models,
                         getattr(existing, "hidden_models", None),
@@ -1612,6 +1624,8 @@ def setup_model_routes(model_discovery):
             "id": ep_id,
             "name": name.strip(),
             "base_url": base_url,
+            "has_key": bool(api_key.strip()),
+            "api_key_fingerprint": _api_key_fingerprint(api_key),
             "models": _merge_model_ids(model_ids, _pinned),
             "pinned_models": _pinned,
             "online": bool(model_ids) or bool(_pinned) or bool(ping.get("reachable")),
@@ -1961,6 +1975,8 @@ def setup_model_routes(model_discovery):
                 "name": ep.name,
                 "model_type": ep.model_type,
                 "base_url": ep.base_url,
+                "has_key": bool(ep.api_key),
+                "api_key_fingerprint": _api_key_fingerprint(ep.api_key),
                 "pinned_models": _normalize_model_ids(getattr(ep, "pinned_models", None)),
                 "endpoint_kind": getattr(ep, "endpoint_kind", None) or "auto",
                 "model_refresh_mode": getattr(ep, "model_refresh_mode", None) or "auto",

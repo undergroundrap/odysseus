@@ -1463,21 +1463,34 @@ def setup_model_routes(model_discovery):
         )
         explicit_timeout = _explicit_model_list_timeout(base_url, requested_kind, refresh_timeout)
 
-        # Dedupe: if an endpoint with the same base_url already exists and
-        # is reachable by the caller (shared or owned by them), return it
-        # instead of creating a duplicate row. Fixes "Scan for Servers"
-        # re-adding manually-added endpoints under their host:port name.
+        # Dedupe: if an endpoint with the same base_url and compatible
+        # credentials already exists and is reachable by the caller (shared or
+        # owned by them), return it instead of creating a duplicate row. Keep
+        # same-url/different-key rows distinct so users can group the same
+        # provider URL under multiple credentials.
         from src.auth_helpers import get_current_user as _gcu_dedup
         _caller = _gcu_dedup(request) or None
+        _incoming_api_key = api_key.strip()
         _db_dedup = SessionLocal()
         try:
-            existing = (
+            _same_url_rows = (
                 _db_dedup.query(ModelEndpoint)
                 .filter(ModelEndpoint.base_url == base_url)
                 .filter((ModelEndpoint.owner.is_(None)) | (ModelEndpoint.owner == _caller))
                 .order_by(ModelEndpoint.owner.desc())  # prefer owned over shared
-                .first()
+                .all()
             )
+            existing = None
+            _empty_key_existing = None
+            for _candidate in _same_url_rows:
+                _candidate_key = (getattr(_candidate, "api_key", None) or "").strip()
+                if _candidate_key == _incoming_api_key:
+                    existing = _candidate
+                    break
+                if _incoming_api_key and not _candidate_key and _empty_key_existing is None:
+                    _empty_key_existing = _candidate
+            if existing is None and _incoming_api_key and _empty_key_existing is not None:
+                existing = _empty_key_existing
             if existing:
                 changed = False
                 # Persist any incoming pinned IDs onto the existing row. An

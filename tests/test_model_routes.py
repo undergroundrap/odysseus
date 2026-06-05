@@ -857,6 +857,49 @@ def test_post_dedupe_existing_does_not_clobber_pinned_when_omitted(monkeypatch):
     assert json.loads(existing.pinned_models) == ["keep-me"]
     assert result["pinned_models"] == ["keep-me"]
     assert db.committed == 0  # nothing to persist
+
+
+def test_post_same_base_url_different_api_key_creates_distinct_endpoint(monkeypatch):
+    existing = _make_endpoint(
+        base_url="https://api.example.test/v1",
+        api_key="key-one",
+    )
+    db = _PinnedFakeDb([existing])
+    _patch_create_deps(monkeypatch, db)
+    create = _get_route("/api/model-endpoints", "POST")
+
+    result = create(
+        _PinnedFakeRequest(),
+        base_url="https://api.example.test/v1",
+        **_create_form_kwargs(api_key="key-two"),
+    )
+
+    assert result.get("existing") is not True
+    assert len(db.added) == 1
+    assert db.added[0].base_url == "https://api.example.test/v1"
+    assert db.added[0].api_key == "key-two"
+
+
+def test_post_same_base_url_same_api_key_still_dedupes(monkeypatch):
+    existing = _make_endpoint(
+        base_url="https://api.example.test/v1",
+        api_key="key-one",
+    )
+    db = _PinnedFakeDb([existing])
+    _patch_create_deps(monkeypatch, db)
+    create = _get_route("/api/model-endpoints", "POST")
+
+    result = create(
+        _PinnedFakeRequest(),
+        base_url="https://api.example.test/v1",
+        **_create_form_kwargs(api_key="key-one"),
+    )
+
+    assert result["existing"] is True
+    assert result["id"] == existing.id
+    assert db.added == []
+
+
 class _RouteQuery:
     def __init__(self, rows):
         self.rows = list(rows)

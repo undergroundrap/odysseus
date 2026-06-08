@@ -20,7 +20,7 @@ def test_build_models_url_accepts_v1_base_and_chat_url(monkeypatch):
 
 def test_llm_core_list_model_ids_queries_models_for_v1_base(monkeypatch):
     monkeypatch.setattr(endpoint_resolver, "resolve_url", lambda url: url)
-    monkeypatch.setattr(llm_core, "_configured_cached_model_ids", lambda url: [])
+    monkeypatch.setattr(llm_core, "_configured_cached_model_ids", lambda url, **kwargs: [])
     seen = []
 
     def fake_get(url, headers=None, timeout=None):

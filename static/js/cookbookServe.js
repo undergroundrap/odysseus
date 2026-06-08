@@ -537,7 +537,7 @@ function _rerenderCachedModels() {
       // The venv set per-server in Settings (server.envPath). Used as the venv
       // field default when the global active env path isn't carrying it, so a
       // configured server venv shows up without re-typing it.
-      const _selSrv = (_es.servers || []).find(s => s.host === (_es.remoteHost || '')) || {};
+      const _selSrv = _serverByVal?.(_es.remoteServerKey || _es.remoteHost || '') || {};
       const _srvVenv = _selSrv.envPath || '';
       // Serve state schema: { _byRepo: { <repo>: {...} }, _lastUsed: {...} }.
       // Loading priority: this-repo's saved settings → last-used (from any
@@ -1790,7 +1790,7 @@ function _rerenderCachedModels() {
             const _probeParams = new URLSearchParams();
             if (_probeHost) {
               _probeParams.set('host', _probeHost);
-              const _sp = (_envState.servers || []).find(s => s.host === _probeHost)?.port;
+              const _sp = (_serverByVal?.(_envState.remoteServerKey || _probeHost) || {}).port;
               if (_sp) _probeParams.set('ssh_port', _sp);
             }
             const _probeRes = await fetch('/api/cookbook/gpus' + (_probeParams.toString() ? '?' + _probeParams : ''), { credentials: 'same-origin' });

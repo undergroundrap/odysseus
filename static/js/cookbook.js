@@ -2218,6 +2218,7 @@ const shared = {
   _sshPrefix,
   _getPlatform,
   _serverByVal,
+  _selectedServer,
   _currentServerValue,
   _isWindows,
   _isMetal,

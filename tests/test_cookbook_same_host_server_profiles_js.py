@@ -8,6 +8,7 @@ COOKBOOK = (ROOT / "static/js/cookbook.js").read_text(encoding="utf-8")
 HWFIT = (ROOT / "static/js/cookbook-hwfit.js").read_text(encoding="utf-8")
 DOWNLOAD = (ROOT / "static/js/cookbookDownload.js").read_text(encoding="utf-8")
 SERVE = (ROOT / "static/js/cookbookServe.js").read_text(encoding="utf-8")
+RUNNING = (ROOT / "static/js/cookbookRunning.js").read_text(encoding="utf-8")
 
 
 def test_server_dropdown_options_use_profile_keys_not_hosts():
@@ -31,11 +32,22 @@ def test_selected_server_helpers_prefer_profile_key_before_host_fallback():
 def test_cookbook_submodules_resolve_visible_profile_selection():
     assert "_serverByVal?.(_ssv)" in DOWNLOAD
     assert "_serverByVal?.(_envState.remoteServerKey || host)" in DOWNLOAD
+    assert "_serverByVal?.(_envState.remoteServerKey || _zh)" in DOWNLOAD
     assert "_serverByVal(_envState.remoteServerKey || remoteHost)" in HWFIT
     assert "hk: _currentServerValue()" in HWFIT
     assert "sel.value = _currentServerValue();" in HWFIT
     assert "_serverByVal?.(_ssEl.value)" in SERVE
     assert "_serverByVal?.(val)" in SERVE
+    assert "_serverByVal?.(_es.remoteServerKey || _es.remoteHost || '')" in SERVE
+    assert "_serverByVal?.(_envState.remoteServerKey || _probeHost)" in SERVE
+
+
+def test_running_tab_resolves_profile_key_not_first_host():
+    assert "_serverByVal(_envState.remoteServerKey || _tHost)" in RUNNING
+    assert "_serverByVal(_envState.remoteServerKey || _host)" in RUNNING
+    assert "_serverByVal(_envState.remoteServerKey || host)" in RUNNING
+    assert "_serverByVal = shared._serverByVal;" in RUNNING
+    assert "_selectedServer = shared._selectedServer;" in RUNNING
 
 
 def test_no_same_host_selector_paths_resolve_by_first_matching_host():

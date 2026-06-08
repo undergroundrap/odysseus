@@ -547,7 +547,8 @@ export async function _runModelDownload(panel, model, backend, hostOverride) {
   if (zombieCandidate) {
     try {
       const _zh = zombieCandidate.remoteHost || '';
-      const _zPort = (_envState.servers || []).find(s => s.host === _zh)?.port;
+      const _zPort = (_serverByVal?.(_envState.remoteServerKey || _zh)
+        || (_envState.servers || []).find(s => s.host === _zh) || {}).port;
       const _sshPf = _zh ? `ssh ${_zPort && _zPort !== '22' ? `-p ${_zPort} ` : ''}${_zh} '` : '';
       const _sshSf = _zh ? `'` : '';
       const _probeCmd = `${_sshPf}tmux has-session -t ${zombieCandidate.sessionId} 2>/dev/null${_sshSf}`;
